@@ -136,6 +136,11 @@ def bundle_output_folder(
     if reason is not None:
         raise ValueError(reason)
 
+    from meanap.pipeline.matlab_bundle import is_matlab_output, bundle_matlab_output
+    if is_matlab_output(root) and _read_params(root) is None:
+        target = Path(dest) if dest is not None else default_bundle_dest(root)
+        return bundle_matlab_output(root, target, log=log, verify=verify)
+
     warnings: list[str] = []
     stored = _stored_manifest(root)
     params = _read_params(root)
@@ -194,6 +199,9 @@ def unbundlable_reason(output_root: Path | str) -> str | None:
     root = Path(output_root)
     if not root.is_dir():
         return f"Not an output folder: {root}"
+    from meanap.pipeline.matlab_bundle import is_matlab_output
+    if is_matlab_output(root):
+        return None
     if _read_params(root) is None and not _stored_manifest(root):
         return _not_an_output_folder(root)
     return None
@@ -215,8 +223,8 @@ def _not_an_output_folder(root: Path) -> str:
             f"{root.name} is a MATLAB MEA-NAP output folder. Bundles are packed "
             "from the data the Python pipeline writes (params.json, "
             "netmet_results.json, the .npz files), which a MATLAB run does not "
-            "produce — so this folder cannot be bundled without re-running the "
-            "analysis in Python."
+            "produce directly. MATLAB import needs Parameters_*.mat and an "
+            "ExperimentMatFiles folder containing saved step-4 results."
         )
     return (
         f"{root.name} does not look like a MEA-NAP output folder: it has no "

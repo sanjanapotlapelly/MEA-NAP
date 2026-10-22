@@ -448,7 +448,11 @@ def write_bundle(
             if not path.is_file():
                 continue
             rel = path.relative_to(root)
-            if _is_reconstructable_member(rel, keep) or is_os_metadata(rel):
+            # Imported MATLAB figures may depend on payloads the Python
+            # renderer does not understand; retain every original image.
+            skip_figure = (manifest.get("source_pipeline") != "matlab"
+                           and _is_reconstructable_member(rel, keep))
+            if skip_figure or is_os_metadata(rel):
                 continue
             if rel.as_posix() == PARAMS_FILENAME:
                 # The copy in the output folder keeps everything — it never
